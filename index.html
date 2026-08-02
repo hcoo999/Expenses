@@ -184,14 +184,14 @@
   }
   
   .item-row input[type="text"].amount-input{
-    width:78px;
+    width:104px;
     min-width:0;
     text-align:right;
     border:none;
     border-bottom:1px solid transparent;
     background:transparent;
     font-family:"Consolas","SFMono-Regular",monospace;
-    font-size:16px;
+    font-size:18px;
     font-weight:800;
     color:var(--stamp-red);
     padding:4px 2px;
@@ -199,6 +199,18 @@
   .item-row input[type="text"].amount-input:focus{outline:none; border-bottom:1px solid var(--teal);}
   .unit{font-size:12px; color:var(--ink-soft); white-space:nowrap; flex:0 0 auto;}
   
+  .rename-btn{
+    flex:0 0 auto;
+    border:none;
+    background:transparent;
+    font-size:13px;
+    line-height:1;
+    cursor:pointer;
+    padding:2px 4px;
+    opacity:0.75;
+  }
+  .rename-btn:hover{ opacity:1; }
+
   .remove-btn{
     width:22px;height:22px;border-radius:50%;
     border:1px solid #c9bd9a; background:#fffdf8;
@@ -211,10 +223,11 @@
   .remove-btn:disabled{ opacity: 0.3; cursor: not-allowed; }
 
   @media (max-width:480px){
-    .item-row{ gap:5px; }
+    .item-row{ gap:4px; }
     .item-row .name-label{ font-size:13.5px; }
-    .item-row input[type="text"].amount-input{ width:62px; font-size:15px; }
+    .item-row input[type="text"].amount-input{ width:78px; font-size:17px; }
     .unit{ font-size:11px; }
+    .rename-btn{ font-size:12px; padding:2px 2px; }
   }
 
   .add-item{
@@ -455,19 +468,17 @@
     <section class="block">
       <div class="section-title">
         <span class="num">01</span>
-        <h2>조건</h2>
-        <span class="sub">아래 선택시 적정생활비와 비교 예시</span>
+        <h2>가구.비교그룹</h2>
+        <span class="sub">선택시 적정생활비와 비교 예시함</span>
       </div>
       <div class="field-row">
         <div>
-          <label for="basis">가구 기준</label>
           <select id="basis">
             <option value="couple">부부 기준</option>
             <option value="single">개인 기준</option>
           </select>
         </div>
         <div>
-          <label for="group">비교 그룹</label>
           <select id="group">
             <option value="전체">전체</option>
             <option value="50-54세">50-54세</option>
@@ -485,7 +496,7 @@
     <section class="block">
       <div class="section-title">
         <span class="num">02</span>
-        <h2>월평균 세부 생활비 입력</h2>
+        <h2>월평균 생활비 입력(금액 수정)</h2>
       </div>
       <div id="itemList"></div>
       <button class="add-item" id="addItem">+ 항목 추가하기</button>
@@ -681,15 +692,29 @@ function renderItems(){
     const row = document.createElement("div");
     row.className = "item-row";
     row.innerHTML = `
-      <div class="item-icon">${getIcon(item.name)}</div>
+      <div class="item-icon">${item.icon || getIcon(item.name)}</div>
       <div class="name-label" title="${item.name}">${item.name}</div>
       <div class="amount-wrap">
         <input type="text" inputmode="numeric" pattern="[0-9]*" value="${item.amount}" data-idx="${idx}" class="amount-input">
         <span class="unit">만원</span>
       </div>
       <button class="remove-btn" data-idx="${idx}" title="삭제" ${items.length <= 1 ? 'disabled' : ''}>×</button>
+      <button class="rename-btn" data-idx="${idx}" title="항목이름 수정">✏️</button>
     `;
     itemListEl.appendChild(row);
+  });
+
+  itemListEl.querySelectorAll(".rename-btn").forEach(btn=>{
+    btn.addEventListener("click", e=>{
+      const idx = e.target.dataset.idx;
+      const current = items[idx].name;
+      const newName = prompt("항목이름을 입력하세요", current);
+      if(newName !== null && newName.trim() !== "") {
+        items[idx].name = newName.trim();
+        renderItems();
+        autoSave();
+      }
+    });
   });
 
   itemListEl.querySelectorAll(".amount-input").forEach(inp=>{
@@ -727,7 +752,10 @@ function updateSubtotal(){
 }
 
 document.getElementById("addItem").addEventListener("click", ()=>{
-  items.push({name:"새 항목", amount:0});
+  const newName = prompt("새 항목의 이름을 입력하세요", "");
+  if(newName === null) return; // 취소 시 추가하지 않음
+  const name = newName.trim() === "" ? "새 항목" : newName.trim();
+  items.push({name:name, amount:0, icon:'💸'});
   renderItems();
   updateSubtotal();
   autoSave();
